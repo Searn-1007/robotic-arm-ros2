@@ -4,8 +4,12 @@ Quỹ đạo trong không gian Cartesian của chu trình hàn (stop-and-go).
 Ba chặng LSPB Home -> B -> A -> Home, xen giữa là các khoảng dừng (dwell)
 tại B (mồi hồ quang) và A (điền đầy miệng hàn).
 
-Kết quả: bảng thời gian chu trình và đồ thị s(t), v(t), a(t).
+Kết quả:
+    - ``Cartesian_Waypoints.txt`` (Time, X, Y, Z) cạnh file này;
+    - bảng thời gian chu trình và đồ thị s(t), v(t), a(t).
 """
+
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -109,7 +113,25 @@ V_total = np.concatenate([v1, v_dwell_b, v2, v_dwell_a, v3])
 A_total = np.concatenate([a1, a_dwell_b, a2, a_dwell_a, a3])
 
 # ==========================================
-# 5. BẢNG THỜI GIAN CHU TRÌNH HÀN
+# 5. NỘI SUY VỊ TRÍ 3D (X, Y, Z) VÀ XUẤT FILE TXT
+# ==========================================
+# Vị trí mỏ hàn nội suy theo quãng đường s(t)
+pos1 = P_Home + (s1[:, None] / dist_1) * (P_B - P_Home)
+pos_dwell_b = np.tile(P_B, (len(t_dwell_b), 1))
+pos2 = P_B + (s2[:, None] / dist_2) * (P_A - P_B)
+pos_dwell_a = np.tile(P_A, (len(t_dwell_a), 1))
+pos3 = P_A + (s3[:, None] / dist_3) * (P_Home - P_A)
+
+Pos_total = np.vstack([pos1, pos_dwell_b, pos2, pos_dwell_a, pos3])
+
+file_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Cartesian_Waypoints.txt")
+with open(file_name, "w", encoding="utf-8", newline="\n") as f:
+    f.write("Time(s)\tX(m)\tY(m)\tZ(m)\n")
+    for t_i, p_i in zip(T_total, Pos_total):
+        f.write(f"{t_i:.3f}\t{p_i[0]:.4f}\t{p_i[1]:.4f}\t{p_i[2]:.4f}\n")
+
+# ==========================================
+# 6. BẢNG THỜI GIAN CHU TRÌNH HÀN
 # ==========================================
 time_reach_B = t1[-1]
 time_leave_B = t_dwell_b_offset[-1]
@@ -125,10 +147,12 @@ print(f"[2] Mỏ hàn rời điểm B  (Bắt đầu rê mỏ hàn đi hàn)   :
 print(f"[3] Mỏ hàn chạm điểm A (Bắt đầu Dwell ngắt hồ quang): {time_reach_A:.3f} s")
 print(f"[4] Mỏ hàn rời điểm A  (Rút mỏ hàn về vị trí Home)  : {time_leave_A:.3f} s")
 print(f"[5] Hoàn thành toàn bộ chu trình                      : {time_finish:.3f} s")
+print("=" * 50)
+print(f"[*] Đã xuất dữ liệu tọa độ 3D thành công ra file: {file_name}")
 print("=" * 50 + "\n")
 
 # ==========================================
-# 6. ĐỒ THỊ s(t), v(t), a(t)
+# 7. ĐỒ THỊ s(t), v(t), a(t)
 # ==========================================
 plt.figure(figsize=(12, 10))
 

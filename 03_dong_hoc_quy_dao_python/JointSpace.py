@@ -7,11 +7,21 @@ Quy hoạch quỹ đạo LSPB trong không gian Cartesian (Home -> B -> dừng -
     - q_dot : nghịch đảo Jacobian (pseudo-inverse)
     - q_ddot: đạo hàm số của q_dot
 
-Kết quả: đồ thị vị trí, vận tốc, gia tốc của 3 khớp q1, q2, q3.
+Kết quả:
+    - đồ thị vị trí, vận tốc, gia tốc của 3 khớp q1, q2, q3;
+    - 3 file quỹ đạo đặt cho Simulink trong ``04_bo_dieu_khien_IDPD_simulink``:
+      ``Vitridat.mat``, ``Vantocdat.mat``, ``Giatocdat.mat`` (mỗi file 5 x N:
+      hàng 0 = t, hàng 1..3 = q1..q3 hoặc đạo hàm, hàng 4 = q4 = 0).
 """
+
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.io import savemat
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SIMULINK_DIR = os.path.join(BASE_DIR, "..", "04_bo_dieu_khien_IDPD_simulink")
 
 # =================================================================
 # 1. THÔNG SỐ DH & HÀM ĐỘNG HỌC (IK / JACOBIAN)
@@ -152,6 +162,12 @@ for tb in time_blocks:
         current_time += tb[-1] + DT
 T_total = np.array(T_total)
 
+# Mốc thời gian các giai đoạn (chỉ số mẫu cuối của từng đoạn)
+idx_reach_B = len(t1) - 1
+idx_leave_B = idx_reach_B + len(td_b)
+idx_reach_A = idx_leave_B + len(t2)
+idx_leave_A = idx_reach_A + len(td_a)
+
 P_total = np.vstack([p1, pd_b, p2, pd_a, p3])
 V_total = np.vstack([v1, vd_b, v2, vd_a, v3])
 
@@ -185,7 +201,16 @@ for j in range(3):
     Q_ddot[:, j] = np.gradient(Q_dot[:, j], DT)
 
 # =================================================================
-# 5. ĐỒ THỊ VỊ TRÍ - VẬN TỐC - GIA TỐC KHỚP
+# 5. XUẤT QUỸ ĐẠO ĐẶT CHO SIMULINK
+# =================================================================
+Q4_zeros = np.zeros(N_points)  # khớp q4 (xoay mỏ hàn) đứng yên
+for name, data in [("Vitridat", Q), ("Vantocdat", Q_dot), ("Giatocdat", Q_ddot)]:
+    mat_path = os.path.join(SIMULINK_DIR, f"{name}.mat")
+    savemat(mat_path, {name: np.vstack([T_total, data.T, Q4_zeros])})
+    print(f"Đã xuất {mat_path}")
+
+# =================================================================
+# 6. ĐỒ THỊ VỊ TRÍ - VẬN TỐC - GIA TỐC KHỚP
 # =================================================================
 fig, axs = plt.subplots(3, 3, figsize=(16, 10))
 fig.suptitle(
@@ -200,13 +225,8 @@ colors = ['blue', 'red', 'green']
 
 def draw_dwell_zones(ax):
     """Tô màu các khoảng thời gian dừng tại B và A."""
-    start_dwell_b = t1[-1]
-    end_dwell_b = start_dwell_b + 0.5
-    ax.axvspan(start_dwell_b, end_dwell_b, color='yellow', alpha=0.3)
-
-    start_dwell_a = end_dwell_b + t2[-1]
-    end_dwell_a = start_dwell_a + 1.0
-    ax.axvspan(start_dwell_a, end_dwell_a, color='orange', alpha=0.3)
+    ax.axvspan(T_total[idx_reach_B], T_total[idx_leave_B], color='yellow', alpha=0.3)
+    ax.axvspan(T_total[idx_reach_A], T_total[idx_leave_A], color='orange', alpha=0.3)
 
 
 for i in range(3):

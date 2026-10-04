@@ -23,6 +23,8 @@ Thiết kế, tính toán và mô phỏng một cánh tay robot hàn 4 bậc t�
 
 Đế cố định d0 = 0.084 m. Đầu mỏ hàn lệch (−68, 0, 126) mm so với hệ O4.
 
+Quy ước điểm cuối: không gian làm việc (`main.py`) tính cho **đầu mỏ hàn** (có offset trên); còn quỹ đạo hàn, động học ngược, Simulink và mô phỏng ROS 2 đều tính cho **gốc hệ O4** (q4 = 0).
+
 **Động học thuận** (gốc hệ O4):
 
 ```
@@ -69,14 +71,19 @@ Tổng cộng 2961 điểm tham chiếu (`Cartesian_Waypoints.txt`). Quỹ đạ
 cd 03_dong_hoc_quy_dao_python
 pip install -r requirements.txt
 python main.py            # không gian làm việc + manipulability -> data/ket_qua.png
-python JointSpace.py      # quỹ đạo trong không gian khớp
-python CartesianSpace.py  # quỹ đạo trong không gian Cartesian
+python JointSpace.py      # quỹ đạo khớp + xuất Vitridat/Vantocdat/Giatocdat.mat cho Simulink
+python CartesianSpace.py  # quỹ đạo Cartesian + xuất Cartesian_Waypoints.txt
 python animation.py       # animation 3D robot chạy theo quỹ đạo
+python -m src.run_simulation  # kiểm tra nhanh Jacobian tại một cấu hình mẫu
 ```
 
 **Bộ điều khiển IDPD (MATLAB)**: chạy `initialize.m` trước để nạp tham số, sau đó mở `controller_simulation.slx` và bấm Run. Xem [README](04_bo_dieu_khien_IDPD_simulink/README.md).
 
 **Mô phỏng ROS 2**: xem [05_mo_phong_ros2/README.md](05_mo_phong_ros2/README.md).
+
+## Giấy phép
+
+[MIT](LICENSE)
 
 ## Kết quả
 

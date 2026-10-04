@@ -4,8 +4,8 @@
   <name>robotic_arm_bringup</name>
   <version>0.0.0</version>
   <description>Launch files and Gazebo bridge configuration for the RPRR welding robot.</description>
-  <maintainer email="thinkpad@todo.todo">thinkpad</maintainer>
-  <license>TODO: License declaration</license>
+  <maintainer email="hasonhd123@gmail.com">Searn-1007</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

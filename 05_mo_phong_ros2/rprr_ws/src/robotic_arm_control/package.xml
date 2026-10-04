@@ -4,13 +4,14 @@
   <name>robotic_arm_control</name>
   <version>0.0.0</version>
   <description>Trajectory generation node (LSPB + inverse kinematics) for the RPRR welding robot.</description>
-  <maintainer email="thinkpad@todo.todo">thinkpad</maintainer>
-  <license>TODO: License declaration</license>
+  <maintainer email="hasonhd123@gmail.com">Searn-1007</maintainer>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>

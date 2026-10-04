@@ -5,11 +5,13 @@ Chạy từ thư mục ``03_dong_hoc_quy_dao_python``:
     python -m src.run_simulation
 """
 
+import os
+
 import numpy as np
 from src.kinematics import Robot
 from src.jacobian import position_jacobian
 
-CONFIG_PATH = "config/dh_params.yaml"
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "dh_params.yaml")
 
 
 def fixed_jacobian_wrapper(robot, q, h=1e-6):

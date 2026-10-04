@@ -5,12 +5,25 @@ Node ROS 2 phát quỹ đạo hàn cho robot RPRR trong Gazebo.
 Quỹ đạo Cartesian LSPB Home -> B -> dừng -> A -> dừng -> Home được tính trước,
 chuyển sang không gian khớp bằng động học ngược, rồi phát lần lượt từng điểm
 (chu kỳ 10 ms) xuống các topic ``/q1_cmd_pos`` ... ``/q4_cmd_pos``.
+
+Trước chu trình hàn, node đọc tư thế hiện tại từ ``/joint_states`` và đưa robot
+về HOME bằng một đoạn chuyển động êm trong không gian khớp, rồi giữ tại HOME
+một chút cho các bộ PID ổn định. Chạy xong chu trình, node tự thoát.
 """
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
-import numpy as np
+
+JOINT_NAMES = ('q1', 'q2', 'q3', 'q4')
+# Giới hạn vận tốc khớp trong URDF (rad/s, m/s, rad/s, rad/s)
+JOINT_VEL_LIMITS = np.array([0.5, 0.4, 0.5, 0.8])
+# Đoạn đưa về HOME chỉ dùng tối đa nửa giới hạn vận tốc
+APPROACH_VEL_SCALE = 0.5
+APPROACH_MIN_DURATION = 2.0  # s
+HOME_SETTLE_DURATION = 1.0   # s
 
 
 class TrajectoryDirectPublisher(Node):
@@ -24,14 +37,47 @@ class TrajectoryDirectPublisher(Node):
         self._pub_q2 = self.create_publisher(Float64, '/q2_cmd_pos', 10)
         self._pub_q3 = self.create_publisher(Float64, '/q3_cmd_pos', 10)
         self._pub_q4 = self.create_publisher(Float64, '/q4_cmd_pos', 10)
+        self._sub_joint_states = self.create_subscription(
+            JointState, '/joint_states', self._joint_state_callback, 10)
 
         self.DT = 0.01
 
+        # Chu trình hàn (N, 3) cho q1, q2, q3; q4 luôn bằng 0
         self.Q_profile = self._calculate_joint_space_trajectory()
+        # Toàn bộ điểm sẽ phát (N, 4): đưa về HOME + giữ + chu trình hàn;
+        # chỉ tạo được khi đã biết tư thế ban đầu
+        self._commands = None
+        self._q_current = None
         self.current_index = 0
+        self.done = False
 
         self._timer = self.create_timer(self.DT, self.timer_callback)
-        self.get_logger().info(f'Hệ thống sẵn sàng! Tổng chu trình gồm {len(self.Q_profile)} điểm.')
+        self.get_logger().info(
+            f'Chu trình hàn gồm {len(self.Q_profile)} điểm. '
+            'Đang chờ /joint_states để đưa robot về HOME...')
+
+    def _joint_state_callback(self, msg):
+        """Lưu tư thế khớp hiện tại (q1..q4) từ ``/joint_states``."""
+        positions = dict(zip(msg.name, msg.position))
+        if all(name in positions for name in JOINT_NAMES):
+            self._q_current = np.array([positions[name] for name in JOINT_NAMES])
+
+    def _build_commands(self, q_start):
+        """Ghép đoạn đưa về HOME (đa thức bậc 3), đoạn giữ tại HOME và chu trình hàn."""
+        q_home = np.append(self.Q_profile[0], 0.0)
+        delta = q_home - q_start
+        # Vận tốc đỉnh của đa thức bậc 3 là 1.5 * delta / T
+        duration = max(APPROACH_MIN_DURATION,
+                       np.max(1.5 * np.abs(delta) / (APPROACH_VEL_SCALE * JOINT_VEL_LIMITS)))
+        tau = np.arange(0.0, duration, self.DT) / duration
+        blend = 3 * tau ** 2 - 2 * tau ** 3
+        approach = q_start + blend[:, np.newaxis] * delta
+        settle = np.tile(q_home, (int(round(HOME_SETTLE_DURATION / self.DT)), 1))
+        cycle = np.column_stack([self.Q_profile, np.zeros(len(self.Q_profile))])
+        self.get_logger().info(
+            f'Đưa robot về HOME trong {duration:.2f} s, giữ {HOME_SETTLE_DURATION:.1f} s, '
+            f'rồi chạy chu trình hàn {(len(cycle) - 1) * self.DT:.2f} s.')
+        return np.vstack([approach, settle, cycle])
 
     def _calculate_joint_space_trajectory(self):
         """Tính trước toàn bộ quỹ đạo khớp ``(N, 3)`` cho q1, q2, q3."""
@@ -57,7 +103,8 @@ class TrajectoryDirectPublisher(Node):
                     s[i] = 0.5 * A_max * t_b ** 2 + V_max * (ti - t_b)
                 else:
                     tau = ti - t_b - t_c
-                    s[i] = (0.5 * A_max * t_b ** 2 + V_max * t_c) + (V_max * tau - 0.5 * A_max * tau ** 2)
+                    s[i] = ((0.5 * A_max * t_b ** 2 + V_max * t_c)
+                            + (V_max * tau - 0.5 * A_max * tau ** 2))
             direction = (P_end - P_start) / dist
             return P_start + s[:, np.newaxis] * direction
 
@@ -94,13 +141,20 @@ class TrajectoryDirectPublisher(Node):
 
     def timer_callback(self):
         """Phát điểm quỹ đạo kế tiếp; dừng timer khi hết quỹ đạo."""
-        if self.current_index >= len(self.Q_profile):
-            self.get_logger().info('Hoàn thành! Robot đã đi từ Home -> B -> Dwell -> A -> Dwell -> Rút về Home thành công!')
+        if self._commands is None:
+            if self._q_current is None:
+                return
+            self._commands = self._build_commands(self._q_current)
+
+        if self.current_index >= len(self._commands):
+            self.get_logger().info(
+                'Hoàn thành! Robot đã đi từ Home -> B -> Dwell -> A -> Dwell '
+                '-> Rút về Home thành công!')
             self._timer.cancel()
+            self.done = True
             return
 
-        q1, q2, q3 = self.Q_profile[self.current_index]
-        q4 = 0.0
+        q1, q2, q3, q4 = self._commands[self.current_index]
 
         msg_q1 = Float64(data=float(q1))
         msg_q2 = Float64(data=float(q2))
@@ -118,8 +172,15 @@ class TrajectoryDirectPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = TrajectoryDirectPublisher()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    try:
+        while rclpy.ok() and not node.done:
+            rclpy.spin_once(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

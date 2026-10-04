@@ -65,7 +65,15 @@ nơi mỗi khớp có một plugin `JointPositionController` (PID) riêng, khai 
 | q4 | 15 | 0.3 | 1.5 |
 
 Trạng thái khớp `/joint_states` do plugin `JointStatePublisher` của Gazebo phát và được bridge sang ROS 2 cho
-RViz. Trên đoạn hàn B→A, sai số vị trí trung bình của gốc hệ O4 so với quỹ đạo đặt khoảng 2 mm.
+RViz.
 
-Lưu ý: robot xuất phát ở tư thế q = 0, còn quỹ đạo bắt đầu ngay tại HOME, nên vài giây đầu robot chưa bám kịp
-quỹ đạo.
+Trình tự chạy của node:
+
+1. Chờ bản tin `/joint_states` đầu tiên để biết tư thế hiện tại của robot (lúc spawn là q = 0).
+2. Đưa robot về HOME bằng đa thức bậc 3 trong không gian khớp (vận tốc đầu/cuối bằng 0, vận tốc đỉnh không quá
+   50% giới hạn URDF), từ q = 0 mất khoảng 8.4 s.
+3. Giữ tại HOME 1 s cho các bộ PID ổn định.
+4. Chạy chu trình hàn 29.60 s (2961 điểm, trùng với `Vitridat.mat` của Simulink), xong thì node tự thoát.
+
+Kết quả đo trong Gazebo: sai số vị trí gốc hệ O4 so với quỹ đạo đặt dưới 2 mm suốt chu trình, trung bình 0.1 mm
+trên đoạn hàn B→A.
