@@ -52,9 +52,9 @@ def generate_lspb(dist, V_max, A_max, dt):
 # ==========================================
 DT = 0.01
 
-P_Home = np.array([0.287, 0.0, 0.6895])
-P_B = np.array([0.2, 0.15, 0.7])
-P_A = np.array([0.2, 0.15, 0.5])
+P_Home = np.array([0.1518, -0.2730, 0.7698])
+P_B = np.array([0.1589, -0.1543, 0.7782])
+P_A = np.array([0.1589, -0.1543, 0.5782])
 
 # Chặng 1: Home -> B
 dist_1 = np.linalg.norm(P_B - P_Home)

@@ -35,10 +35,10 @@ class TrajectoryDirectPublisher(Node):
 
     def _calculate_joint_space_trajectory(self):
         """Tính trước toàn bộ quỹ đạo khớp ``(N, 3)`` cho q1, q2, q3."""
-        D1, A2, D3, D4 = 0.2175, 0.25, 0.105, 0.262
-        P_Home = np.array([0.287, 0.0, 0.6895])
-        P_B = np.array([0.2, 0.15, 0.7])
-        P_A = np.array([0.2, 0.15, 0.5])
+        D0, D1, A2, D3, D4 = 0.084, 0.2175, 0.25, 0.105, 0.262
+        P_Home = np.array([0.1518, -0.2730, 0.7698])
+        P_B = np.array([0.1589, -0.1543, 0.7782])
+        P_A = np.array([0.1589, -0.1543, 0.5782])
 
         def generate_lspb(P_start, P_end, V_max, A_max, dt):
             dist = np.linalg.norm(P_end - P_start)
@@ -66,10 +66,12 @@ class TrajectoryDirectPublisher(Node):
             return np.tile(P_stay, (len(t), 1))
 
         def inverse_kinematics(x, y, z):
-            q2 = z - D1 - D4
-            cos_q3 = np.clip((x ** 2 + y ** 2 - A2 ** 2 - D3 ** 2) / (2 * A2 * D3), -1.0, 1.0)
+            # Động học ngược theo bảng DH (khớp với URDF)
+            r = np.sqrt(x ** 2 + y ** 2)
+            q1 = np.arctan2(D3, np.sqrt(r ** 2 - D3 ** 2)) + np.arctan2(y, x)
+            cos_q3 = np.clip((x * np.cos(q1) + y * np.sin(q1) - A2) / D4, -1.0, 1.0)
             q3 = np.arctan2(np.sqrt(1 - cos_q3 ** 2), cos_q3)
-            q1 = np.arctan2(y, x) - np.arctan2(D4 * np.sin(q3), A2 + D4 * np.cos(q3))
+            q2 = z - D4 * np.sin(q3) - D0 - D1
             return q1, q2, q3
 
         p1 = generate_lspb(P_Home, P_B, V_max=0.05, A_max=0.1, dt=self.DT)

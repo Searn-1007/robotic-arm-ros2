@@ -14,8 +14,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # =================================================================
-# 1. THÔNG SỐ CƠ KHÍ & HÀM ĐỘNG HỌC (IK / JACOBIAN)
+# 1. THÔNG SỐ DH & HÀM ĐỘNG HỌC (IK / JACOBIAN)
 # =================================================================
+# Động học thuận (gốc hệ O4, khớp q4 = 0):
+#   x = A2·cos q1 + D3·sin q1 + D4·cos q1·cos q3
+#   y = A2·sin q1 - D3·cos q1 + D4·sin q1·cos q3
+#   z = q2 + D4·sin q3 + D0 + D1
+D0 = 0.084
 D1 = 0.2175
 A2 = 0.25
 D3 = 0.105
@@ -25,49 +30,42 @@ DT = 0.01
 
 def inverse_kinematics(x, y, z):
     """
-    Động học ngược cho robot RPRR (tương đương cơ cấu SCARA).
+    Động học ngược của robot RPRR theo bảng DH.
 
     Returns:
-        ``(q1, q2, q3)`` ứng với cấu hình elbow-down.
+        ``(q1, q2, q3)``, nhánh nghiệm nằm trong giới hạn khớp.
     """
-    # Khớp 2: tịnh tiến theo trục Z
-    q2 = z - D1 - D4
+    # Khớp 1: x·sin q1 - y·cos q1 = D3
+    r = np.sqrt(x ** 2 + y ** 2)
+    q1 = np.arctan2(D3, np.sqrt(r ** 2 - D3 ** 2)) + np.arctan2(y, x)
 
-    # Khớp 3: quay trong mặt phẳng XY (định lý hàm cosin)
-    cos_q3 = (x ** 2 + y ** 2 - A2 ** 2 - D3 ** 2) / (2 * A2 * D3)
+    # Khớp 3: x·cos q1 + y·sin q1 = A2 + D4·cos q3
+    cos_q3 = (x * np.cos(q1) + y * np.sin(q1) - A2) / D4
     cos_q3 = np.clip(cos_q3, -1.0, 1.0)  # tránh lỗi miền xác định khi vượt tầm với
     sin_q3 = np.sqrt(1 - cos_q3 ** 2)    # chọn nghiệm dương
     q3 = np.arctan2(sin_q3, cos_q3)
 
-    # Khớp 1: quay đế
-    k1 = A2 + D4 * cos_q3
-    k2 = D4 * sin_q3
-    q1 = np.arctan2(y, x) - np.arctan2(k2, k1)
+    # Khớp 2: tịnh tiến theo trục Z
+    q2 = z - D4 * sin_q3 - D0 - D1
 
     return q1, q2, q3
 
 
 def calculate_jacobian(q1, q2, q3):
-    """
-    Jacobian giải tích 3x3, ánh xạ vận tốc khớp q_dot sang vận tốc mũi hàn (vx, vy, vz).
-
-        x = A2·cos(q1) + D4·cos(q1 + q3)
-        y = A2·sin(q1) + D4·sin(q1 + q3)
-        z = q2 + D1 + D4
-    """
+    """Jacobian tịnh tiến 3x3, ánh xạ vận tốc khớp q_dot sang vận tốc mũi hàn (vx, vy, vz)."""
     J = np.zeros((3, 3))
 
-    J[0, 0] = -A2 * np.sin(q1) - D4 * np.sin(q1 + q3)  # dx/dq1
-    J[0, 1] = 0.0                                      # dx/dq2
-    J[0, 2] = -D4 * np.sin(q1 + q3)                    # dx/dq3
+    J[0, 0] = -A2 * np.sin(q1) + D3 * np.cos(q1) - D4 * np.sin(q1) * np.cos(q3)  # dx/dq1
+    J[0, 1] = 0.0                                                                # dx/dq2
+    J[0, 2] = -D4 * np.cos(q1) * np.sin(q3)                                      # dx/dq3
 
-    J[1, 0] = A2 * np.cos(q1) + D4 * np.cos(q1 + q3)   # dy/dq1
-    J[1, 1] = 0.0                                      # dy/dq2
-    J[1, 2] = D4 * np.cos(q1 + q3)                     # dy/dq3
+    J[1, 0] = A2 * np.cos(q1) + D3 * np.sin(q1) + D4 * np.cos(q1) * np.cos(q3)   # dy/dq1
+    J[1, 1] = 0.0                                                                # dy/dq2
+    J[1, 2] = -D4 * np.sin(q1) * np.sin(q3)                                      # dy/dq3
 
-    J[2, 0] = 0.0                                      # dz/dq1
-    J[2, 1] = 1.0                                      # dz/dq2 (Z tịnh tiến 1:1 theo q2)
-    J[2, 2] = 0.0                                      # dz/dq3
+    J[2, 0] = 0.0                                                                # dz/dq1
+    J[2, 1] = 1.0                                                                # dz/dq2
+    J[2, 2] = D4 * np.cos(q3)                                                    # dz/dq3
 
     return J
 
@@ -129,9 +127,9 @@ def generate_dwell(P_stay, duration, dt):
 # =================================================================
 # 3. KỊCH BẢN HÀN: HOME -> B (DỪNG) -> A (DỪNG) -> HOME
 # =================================================================
-P_Home = np.array([0.287, 0.0, 0.6895])
-P_B = np.array([0.2, 0.15, 0.7])
-P_A = np.array([0.2, 0.15, 0.5])
+P_Home = np.array([0.1518, -0.2730, 0.7698])
+P_B = np.array([0.1589, -0.1543, 0.7782])
+P_A = np.array([0.1589, -0.1543, 0.5782])
 
 # Chặng 1: Home -> B, dừng tại B
 t1, p1, v1, a1 = generate_lspb(P_Home, P_B, V_max=0.05, A_max=0.1, dt=DT)

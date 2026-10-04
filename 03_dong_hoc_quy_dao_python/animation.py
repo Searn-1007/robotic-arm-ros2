@@ -12,6 +12,7 @@ import matplotlib.animation as animation
 # =================================================================
 # 1. THÔNG SỐ CƠ KHÍ ROBOT RPRR
 # =================================================================
+D0 = 0.084
 D1 = 0.2175
 A2 = 0.25
 D3 = 0.105
@@ -19,37 +20,37 @@ D4 = 0.262
 DT = 0.01
 
 # Các điểm mốc trong không gian Cartesian (hàn dọc trục Z)
-P_HOME = np.array([0.287, 0.0, 0.6895])
-P_B = np.array([0.20, 0.15, 0.70])  # điểm bắt đầu hàn (trên cao)
-P_A = np.array([0.20, 0.15, 0.50])  # điểm kết thúc hàn (dưới thấp)
+P_HOME = np.array([0.1518, -0.2730, 0.7698])
+P_B = np.array([0.1589, -0.1543, 0.7782])  # điểm bắt đầu hàn (trên cao)
+P_A = np.array([0.1589, -0.1543, 0.5782])  # điểm kết thúc hàn (dưới thấp)
 
 
 # =================================================================
 # 2. ĐỘNG HỌC NGƯỢC VÀ VỊ TRÍ CÁC KHÂU
 # =================================================================
 def inverse_kinematics(x, y, z):
-    """Động học ngược: vị trí mũi hàn (x, y, z) -> biến khớp [q1, q2, q3]."""
-    q2 = z - D1 - D4
-    cos_q3 = (x ** 2 + y ** 2 - A2 ** 2 - D3 ** 2) / (2 * A2 * D3)
+    """Động học ngược theo bảng DH: vị trí mũi hàn (x, y, z) -> biến khớp [q1, q2, q3]."""
+    r = np.sqrt(x ** 2 + y ** 2)
+    q1 = np.arctan2(D3, np.sqrt(r ** 2 - D3 ** 2)) + np.arctan2(y, x)
+    cos_q3 = (x * np.cos(q1) + y * np.sin(q1) - A2) / D4
     cos_q3 = np.clip(cos_q3, -1.0, 1.0)
     sin_q3 = np.sqrt(1 - cos_q3 ** 2)
     q3 = np.arctan2(sin_q3, cos_q3)
-    q1 = np.arctan2(y, x) - np.arctan2(D3 * sin_q3, A2 + D3 * cos_q3)
+    q2 = z - D4 * sin_q3 - D0 - D1
     return np.array([q1, q2, q3])
 
 
 def get_robot_links(q1, q2, q3):
-    """Tọa độ các điểm nút của khung xương robot, dùng để vẽ."""
-    p0 = np.array([0, 0, 0])
-    p1 = np.array([0, 0, D1])
-    p2 = np.array([0, 0, D1 + q2])
-    p3 = np.array([A2 * np.cos(q1), A2 * np.sin(q1), D1 + q2])
-    p4 = np.array([
-        A2 * np.cos(q1) + D3 * np.cos(q1 + q3),
-        A2 * np.sin(q1) + D3 * np.sin(q1 + q3),
-        D1 + q2 + D4
-    ])
-    return np.vstack([p0, p1, p2, p3, p4])
+    """Tọa độ các điểm nút của khung xương robot (theo chuỗi DH), dùng để vẽ."""
+    c1, s1 = np.cos(q1), np.sin(q1)
+    z1 = D0 + D1 + q2                                         # độ cao tay đòn A2
+    p0 = np.array([0, 0, 0])                                  # chân đế
+    p1 = np.array([0, 0, D0 + D1])                            # khớp q1
+    p2 = np.array([0, 0, z1])                                 # cuối hành trình tịnh tiến q2
+    p3 = np.array([A2 * c1, A2 * s1, z1])                     # cuối tay đòn A2
+    p4 = p3 + np.array([D3 * s1, -D3 * c1, 0])                # khớp q3 (lệch ngang D3)
+    p5 = p4 + D4 * np.array([c1 * np.cos(q3), s1 * np.cos(q3), np.sin(q3)])  # gốc O4
+    return np.vstack([p0, p1, p2, p3, p4, p5])
 
 
 # =================================================================
@@ -127,7 +128,7 @@ print("=" * 55)
 # =================================================================
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
-fig.canvas.manager.set_window_title('Mô phỏng Robot RPRR - Chuẩn 31.31s')
+fig.canvas.manager.set_window_title(f'Mô phỏng Robot RPRR - {TIME_FINISH:.2f}s')
 
 ax.plot(P_total[:, 0], P_total[:, 1], P_total[:, 2], 'k--', alpha=0.4, label='Đường quỹ đạo thiết kế')
 robot_arm, = ax.plot([], [], [], 'o-', color='#1f77b4', lw=5, markersize=8, label='Khung xương Robot')
@@ -139,7 +140,7 @@ ax.scatter(*P_B, color='orange', s=100, label='B (Bắt đầu hàn)')
 ax.scatter(*P_A, color='purple', s=100, label='A (Kết thúc hàn)')
 
 ax.set_xlim(-0.1, 0.4)
-ax.set_ylim(-0.1, 0.4)
+ax.set_ylim(-0.4, 0.1)
 ax.set_zlim(0, 0.8)
 ax.set_xlabel('X (m)')
 ax.set_ylabel('Y (m)')
