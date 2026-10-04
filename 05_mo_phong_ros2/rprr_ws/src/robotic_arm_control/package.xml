@@ -3,7 +3,7 @@
 <package format="3">
   <name>robotic_arm_control</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Trajectory generation node (LSPB + inverse kinematics) for the RPRR welding robot.</description>
   <maintainer email="thinkpad@todo.todo">thinkpad</maintainer>
   <license>TODO: License declaration</license>
 

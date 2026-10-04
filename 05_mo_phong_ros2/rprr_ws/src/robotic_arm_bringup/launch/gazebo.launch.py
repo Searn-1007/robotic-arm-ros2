@@ -1,3 +1,10 @@
+"""
+Mô phỏng robot trong Gazebo (gz sim) kèm RViz.
+
+Khởi chạy Gazebo, spawn robot từ URDF, bridge ROS <-> Gazebo, ros2_control
+và các controller (joint_state_broadcaster, arm_controller).
+"""
+
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -10,7 +17,6 @@ from ament_index_python.packages import get_package_share_path, get_package_shar
 
 
 def generate_launch_description():
-
     urdf_path = os.path.join(
         get_package_share_path('robotic_arm_description'),
         'urdf',
@@ -112,6 +118,7 @@ def generate_launch_description():
         arguments=["arm_controller"],
         output="screen",
     )
+
     return LaunchDescription([
         gz_sim,
         robot_state_publisher_node,
@@ -122,4 +129,3 @@ def generate_launch_description():
         TimerAction(period=3.0, actions=[joint_state_broadcaster_spawner]),
         TimerAction(period=4.0, actions=[arm_controller_spawner]),
     ])
-

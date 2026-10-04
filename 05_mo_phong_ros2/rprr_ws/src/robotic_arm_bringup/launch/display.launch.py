@@ -1,3 +1,5 @@
+"""Hiển thị mô hình robot trên RViz, chỉnh từng khớp bằng joint_state_publisher_gui."""
+
 from launch import LaunchDescription
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.actions import Node
@@ -5,8 +7,8 @@ from launch.substitutions import Command
 import os
 from ament_index_python.packages import get_package_share_path
 
-def generate_launch_description():
 
+def generate_launch_description():
     urdf_path = os.path.join(
         get_package_share_path('robotic_arm_description'),
         'urdf',
@@ -46,4 +48,3 @@ def generate_launch_description():
         joint_state_publisher_gui_node,
         rviz2_node,
     ])
-

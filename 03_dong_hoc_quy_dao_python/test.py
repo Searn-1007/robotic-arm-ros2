@@ -1,11 +1,19 @@
+"""
+Quỹ đạo Cartesian của chu trình hàn và xuất tọa độ 3D ra file.
+
+Giống ``CartesianSpace.py``, đồng thời nội suy vị trí (x, y, z) của mỏ hàn theo
+quãng đường s(t) và ghi ra ``Cartesian_Waypoints.txt`` (Time, X, Y, Z).
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 # ==========================================
-# 1. TÍNH TOÁN GIẢI TÍCH s(t), v(t), a(t)
+# 1. BIÊN DẠNG LSPB: s(t), v(t), a(t)
 # ==========================================
 def generate_lspb(dist, V_max, A_max, dt):
-    """Tính toán trực tiếp vị trí (s), vận tốc (v), gia tốc (a) mà KHÔNG cần đạo hàm số"""
+    """Tính giải tích quãng đường (s), vận tốc (v), gia tốc (a), không dùng đạo hàm số."""
     if dist < 1e-5:
         return np.array([]), np.array([]), np.array([]), np.array([])
 
@@ -38,8 +46,9 @@ def generate_lspb(dist, V_max, A_max, dt):
 
     return t, s, v, a
 
+
 # ==========================================
-# 2. GHÉP CHẶNG CARTESIAN STOP-AND-GO
+# 2. CÁC CHẶNG CARTESIAN
 # ==========================================
 DT = 0.01
 
@@ -60,12 +69,12 @@ dist_3 = np.linalg.norm(P_Home - P_A)
 t3, s3, v3, a3 = generate_lspb(dist_3, V_max=0.05, A_max=0.1, dt=DT)
 
 # ==========================================
-# 2.5. TẠO DỮ LIỆU DWELL TIME CỐ ĐỊNH TẠI B VÀ A
+# 3. THỜI GIAN DỪNG (DWELL) TẠI B VÀ A
 # ==========================================
-T_DWELL_B = 0.5  # 0.5s chờ mồi hồ quang tại B
-T_DWELL_A = 1.0  # 1.0s chờ điền đầy miệng hàn tại A
+T_DWELL_B = 0.5  # chờ mồi hồ quang tại B (s)
+T_DWELL_A = 1.0  # chờ điền đầy miệng hàn tại A (s)
 
-# Mảng thời gian và v, a (đều bằng 0)
+# Trong lúc dừng: v = 0, a = 0
 t_dwell_b = np.arange(0, T_DWELL_B, DT)
 v_dwell_b = np.zeros_like(t_dwell_b)
 a_dwell_b = np.zeros_like(t_dwell_b)
@@ -75,9 +84,9 @@ v_dwell_a = np.zeros_like(t_dwell_a)
 a_dwell_a = np.zeros_like(t_dwell_a)
 
 # ==========================================
-# 3. GỘP DỮ LIỆU ĐỂ VẼ ĐỒ THỊ TỔNG THỂ
+# 4. GHÉP DỮ LIỆU TOÀN CHU TRÌNH
 # ==========================================
-# Trượt mốc thời gian nối tiếp nhau
+# Dịch mốc thời gian để các đoạn nối tiếp nhau
 t_dwell_b_offset = t_dwell_b + t1[-1] + DT
 t2_offset = t2 + t_dwell_b_offset[-1] + DT
 t_dwell_a_offset = t_dwell_a + t2_offset[-1] + DT
@@ -85,7 +94,7 @@ t3_offset = t3 + t_dwell_a_offset[-1] + DT
 
 T_total = np.concatenate([t1, t_dwell_b_offset, t2_offset, t_dwell_a_offset, t3_offset])
 
-# Quãng đường s(t): Giữ nguyên vị trí trong suốt thời gian Dwell
+# Quãng đường tích lũy s(t): giữ nguyên trong lúc dừng
 s_dwell_b_offset = np.full_like(t_dwell_b, s1[-1])
 s2_offset = s2 + s_dwell_b_offset[-1]
 
@@ -94,64 +103,62 @@ s3_offset = s3 + s_dwell_a_offset[-1]
 
 S_total = np.concatenate([s1, s_dwell_b_offset, s2_offset, s_dwell_a_offset, s3_offset])
 
-# Vận tốc và Gia tốc
 V_total = np.concatenate([v1, v_dwell_b, v2, v_dwell_a, v3])
 A_total = np.concatenate([a1, a_dwell_b, a2, a_dwell_a, a3])
 
 # ==========================================
-# 3.5. NỘI SUY VỊ TRÍ 3D (X, Y, Z) VÀ XUẤT FILE TXT
+# 5. NỘI SUY VỊ TRÍ 3D (X, Y, Z) VÀ XUẤT FILE TXT
 # ==========================================
-# Nội suy vị trí thực tế của robot dựa trên quãng đường s(t)
+# Vị trí mỏ hàn nội suy theo quãng đường s(t)
 pos1 = P_Home + (s1[:, None] / dist_1) * (P_B - P_Home)
 pos_dwell_b = np.tile(P_B, (len(t_dwell_b), 1))
 pos2 = P_B + (s2[:, None] / dist_2) * (P_A - P_B)
 pos_dwell_a = np.tile(P_A, (len(t_dwell_a), 1))
 pos3 = P_A + (s3[:, None] / dist_3) * (P_Home - P_A)
 
-# Gộp tất cả tọa độ 3D thành một mảng duy nhất
 Pos_total = np.vstack([pos1, pos_dwell_b, pos2, pos_dwell_a, pos3])
 
-# Ghi ra file .txt
 file_name = "Cartesian_Waypoints.txt"
 with open(file_name, "w", encoding="utf-8") as f:
     f.write("Time(s)\tX(m)\tY(m)\tZ(m)\n")
     for t_i, p_i in zip(T_total, Pos_total):
         f.write(f"{t_i:.3f}\t{p_i[0]:.4f}\t{p_i[1]:.4f}\t{p_i[2]:.4f}\n")
 
-
 # ==========================================
-# THỐNG KÊ THỜI GIAN CHU TRÌNH HÀN LÊN CONSOLE
+# 6. BẢNG THỜI GIAN CHU TRÌNH HÀN
 # ==========================================
 time_reach_B = t1[-1]
 time_leave_B = t_dwell_b_offset[-1]
 time_reach_A = t2_offset[-1]
 time_leave_A = t_dwell_a_offset[-1]
-time_finish  = T_total[-1]
+time_finish = T_total[-1]
 
-print("\n" + "="*50)
+print("\n" + "=" * 50)
 print("BẢNG THỐNG KÊ THỜI GIAN CHU TRÌNH HÀN")
-print("="*50)
+print("=" * 50)
 print(f"[1] Mỏ hàn chạm điểm B (Bắt đầu Dwell mồi hồ quang): {time_reach_B:.3f} s")
 print(f"[2] Mỏ hàn rời điểm B  (Bắt đầu rê mỏ hàn đi hàn)   : {time_leave_B:.3f} s")
 print(f"[3] Mỏ hàn chạm điểm A (Bắt đầu Dwell ngắt hồ quang): {time_reach_A:.3f} s")
 print(f"[4] Mỏ hàn rời điểm A  (Rút mỏ hàn về vị trí Home)  : {time_leave_A:.3f} s")
 print(f"[5] Hoàn thành toàn bộ chu trình                      : {time_finish:.3f} s")
-print("="*50)
+print("=" * 50)
 print(f"[*] Đã xuất dữ liệu tọa độ 3D thành công ra file: {file_name}")
-print("="*50 + "\n")
+print("=" * 50 + "\n")
 
 # ==========================================
-# 4. XUẤT ĐỒ THỊ BÁO CÁO
+# 7. ĐỒ THỊ s(t), v(t), a(t)
 # ==========================================
 plt.figure(figsize=(12, 10))
 
-# Hàm phụ trợ để highlight vùng Dwell Time
+
 def highlight_dwells():
+    """Tô màu các khoảng thời gian dừng tại B và A."""
     plt.axvspan(t1[-1], t_dwell_b_offset[-1], color='yellow', alpha=0.3, label='Dwell B (Mồi)')
     plt.axvspan(t2_offset[-1], t_dwell_a_offset[-1], color='orange', alpha=0.3, label='Dwell A (Ngắt)')
     plt.legend()
 
-# 1. Đồ thị Quãng đường
+
+# Quãng đường
 plt.subplot(3, 1, 1)
 plt.plot(T_total, S_total, 'b-', linewidth=2)
 highlight_dwells()
@@ -159,7 +166,7 @@ plt.title("QUÃNG ĐƯỜNG CARTESIAN TÍCH LŨY S(t)", fontweight='bold')
 plt.ylabel("Quãng đường (m)")
 plt.grid(True, linestyle='--')
 
-# 2. Đồ thị Vận tốc
+# Vận tốc
 plt.subplot(3, 1, 2)
 plt.plot(T_total, V_total, 'g-', linewidth=2)
 highlight_dwells()
@@ -167,7 +174,7 @@ plt.title("VẬN TỐC CARTESIAN V(t)", fontweight='bold')
 plt.ylabel("Vận tốc (m/s)")
 plt.grid(True, linestyle='--')
 
-# 3. Đồ thị Gia tốc
+# Gia tốc
 plt.subplot(3, 1, 3)
 plt.plot(T_total, A_total, 'm-', linewidth=2)
 highlight_dwells()

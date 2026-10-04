@@ -1,10 +1,16 @@
+"""
+Mô phỏng 3D (animation) robot RPRR thực hiện chu trình hàn dọc trục Z.
+
+Quỹ đạo: Home -> B (dừng mồi hồ quang) -> A (dừng ngắt hồ quang) -> Home,
+mỗi chặng dùng biên dạng LSPB. Animation phát đúng tốc độ thời gian thực.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from mpl_toolkits.mplot3d import Axes3D
 
 # =================================================================
-# 1. THÔNG SỐ CƠ KHÍ ROBOT RPRR (SCARA CHUẨN)
+# 1. THÔNG SỐ CƠ KHÍ ROBOT RPRR
 # =================================================================
 D1 = 0.2175
 A2 = 0.25
@@ -12,16 +18,17 @@ D3 = 0.105
 D4 = 0.262
 DT = 0.01
 
-# Tọa độ các điểm mốc trong không gian Cartesian (Hàn dọc trục Z)
+# Các điểm mốc trong không gian Cartesian (hàn dọc trục Z)
 P_HOME = np.array([0.287, 0.0, 0.6895])
-P_B = np.array([0.20, 0.15, 0.70])  # Điểm bắt đầu hàn (Trên cao)
-P_A = np.array([0.20, 0.15, 0.50])  # Điểm kết thúc hàn (Dưới thấp)
+P_B = np.array([0.20, 0.15, 0.70])  # điểm bắt đầu hàn (trên cao)
+P_A = np.array([0.20, 0.15, 0.50])  # điểm kết thúc hàn (dưới thấp)
 
 
 # =================================================================
-# 2. THUẬT TOÁN ĐỘNG HỌC NGƯỢC (IK CHUẨN ĐÃ SỬA LỖI D3)
+# 2. ĐỘNG HỌC NGƯỢC VÀ VỊ TRÍ CÁC KHÂU
 # =================================================================
 def inverse_kinematics(x, y, z):
+    """Động học ngược: vị trí mũi hàn (x, y, z) -> biến khớp [q1, q2, q3]."""
     q2 = z - D1 - D4
     cos_q3 = (x ** 2 + y ** 2 - A2 ** 2 - D3 ** 2) / (2 * A2 * D3)
     cos_q3 = np.clip(cos_q3, -1.0, 1.0)
@@ -32,6 +39,7 @@ def inverse_kinematics(x, y, z):
 
 
 def get_robot_links(q1, q2, q3):
+    """Tọa độ các điểm nút của khung xương robot, dùng để vẽ."""
     p0 = np.array([0, 0, 0])
     p1 = np.array([0, 0, D1])
     p2 = np.array([0, 0, D1 + q2])
@@ -45,10 +53,12 @@ def get_robot_links(q1, q2, q3):
 
 
 # =================================================================
-# 3. QUY HOẠCH QUỸ ĐẠO HÌNH THANG (LSPB) CHIA 3 CHẶNG + DWELL TIME
+# 3. QUY HOẠCH QUỸ ĐẠO LSPB 3 CHẶNG + THỜI GIAN DỪNG
 # =================================================================
 def generate_lspb(dist, V_max, A_max, dt):
-    if dist < 1e-5: return np.array([]), np.array([])
+    """Biên dạng quãng đường s(t) dạng LSPB trên quãng đường ``dist``."""
+    if dist < 1e-5:
+        return np.array([]), np.array([])
     if V_max ** 2 / A_max > dist:
         V_max = np.sqrt(dist * A_max)
     t_b = V_max / A_max
@@ -66,20 +76,22 @@ def generate_lspb(dist, V_max, A_max, dt):
         else:
             tau = ti - t_b - t_c
             s[i] = (dist - 0.5 * A_max * t_b ** 2) + V_max * tau - 0.5 * A_max * tau ** 2
-            if s[i] > dist: s[i] = dist
+            if s[i] > dist:
+                s[i] = dist
     return s, t
 
 
 def lspb_profile(p_start, p_end, V_max, A_max, dt):
+    """Quỹ đạo LSPB trên đoạn thẳng 3D từ ``p_start`` đến ``p_end``."""
     dist = np.linalg.norm(p_end - p_start)
-    if dist < 1e-5: return np.array([p_start]), np.array([0])
+    if dist < 1e-5:
+        return np.array([p_start]), np.array([0])
     s, t = generate_lspb(dist, V_max, A_max, dt)
     u = (p_end - p_start) / dist
     pts = p_start + s[:, np.newaxis] * u
     return pts, t
 
 
-# BỘ THÔNG SỐ ĐÃ ĐƯỢC PHỤC HỒI ĐỂ ÉP RA ĐÚNG 31.310s CỦA ÔNG
 pts1, t1 = lspb_profile(P_HOME, P_B, V_max=0.05, A_max=0.10, dt=DT)
 pts2, t2 = lspb_profile(P_B, P_A, V_max=0.01, A_max=0.05, dt=DT)
 pts3, t3 = lspb_profile(P_A, P_HOME, V_max=0.05, A_max=0.10, dt=DT)
@@ -93,7 +105,7 @@ Q_total = np.array([inverse_kinematics(p[0], p[1], p[2]) for p in P_total])
 total_frames = len(P_total)
 T_total = np.arange(total_frames) * DT
 
-# TRÍCH XUẤT THỜI GIAN THEO ĐÚNG LOGIC MẢNG ĐỘNG
+# Mốc thời gian các giai đoạn, suy ra từ độ dài từng đoạn
 T_REACH_B = T_total[len(pts1) - 1]
 T_LEAVE_B = T_total[len(pts1) + len(dwell_b_pts) - 1]
 T_REACH_A = T_total[len(pts1) + len(dwell_b_pts) + len(pts2) - 1]
@@ -111,7 +123,7 @@ print(f"[5] Hoàn thành toàn bộ chu trình                      : {TIME_FINI
 print("=" * 55)
 
 # =================================================================
-# 4. KỊCH BẢN ĐỒ HỌA MÔ PHỎNG 3D (TỐC ĐỘ 1:1 REAL-TIME)
+# 4. ĐỒ HỌA MÔ PHỎNG 3D (TỐC ĐỘ THỜI GIAN THỰC 1:1)
 # =================================================================
 fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
@@ -126,25 +138,27 @@ ax.scatter(*P_HOME, color='green', s=100, label='HOME')
 ax.scatter(*P_B, color='orange', s=100, label='B (Bắt đầu hàn)')
 ax.scatter(*P_A, color='purple', s=100, label='A (Kết thúc hàn)')
 
-ax.set_xlim(-0.1, 0.4);
-ax.set_ylim(-0.1, 0.4);
+ax.set_xlim(-0.1, 0.4)
+ax.set_ylim(-0.1, 0.4)
 ax.set_zlim(0, 0.8)
-ax.set_xlabel('X (m)');
-ax.set_ylabel('Y (m)');
+ax.set_xlabel('X (m)')
+ax.set_ylabel('Y (m)')
 ax.set_zlabel('Z (m)')
-ax.set_title(f"MÔ PHỎNG QUY HOẠCH QUỸ ĐẠO CHU TRÌNH HÀN TRỤC Z", fontsize=13, weight='bold')
+ax.set_title("MÔ PHỎNG QUY HOẠCH QUỸ ĐẠO CHU TRÌNH HÀN TRỤC Z", fontsize=13, weight='bold')
 ax.legend(loc='lower left')
 ax.view_init(elev=20, azim=50)
 
 trail_x, trail_y, trail_z = [], [], []
 
-# STEP = 2, Interval = 20 đảm bảo phát đúng tốc độ thời gian thực (Mất đúng 31 giây để chạy xong mô phỏng)
+# STEP = 2 với interval = 20 ms -> phát đúng tốc độ thời gian thực
 STEP = 2
 
 
 def update(frame):
+    """Cập nhật khung hình: tư thế robot, vết hàn và dòng trạng thái."""
     idx = frame * STEP
-    if idx >= total_frames: idx = total_frames - 1
+    if idx >= total_frames:
+        idx = total_frames - 1
 
     q1, q2, q3 = Q_total[idx]
     t = T_total[idx]
@@ -164,9 +178,9 @@ def update(frame):
     elif T_LEAVE_B < t <= T_REACH_A:
         status = "🔥 ĐANG HÀN: Rê mỏ hàn thẳng đứng dọc trục Z!"
         color = "red"
-        # Bắt đầu vẽ tia hàn đỏ khi đang hàn
-        trail_x.append(ee_pos[0]);
-        trail_y.append(ee_pos[1]);
+        # Vẽ vết hàn trong lúc đang hàn
+        trail_x.append(ee_pos[0])
+        trail_y.append(ee_pos[1])
         trail_z.append(ee_pos[2])
     elif T_REACH_A < t <= T_LEAVE_A:
         status = "⏱️ DWELL: Đang dừng ngắt hồ quang và điền đầy miệng hàn tại A..."
