@@ -1,17 +1,25 @@
 """
 Kiểm tra nhanh Jacobian vị trí tại một cấu hình khớp mẫu.
 
-Chạy từ thư mục ``03_dong_hoc_quy_dao_python``:
+Chạy (từ thư mục bất kỳ):
+    python 03_dong_hoc_quy_dao_python/src/run_simulation.py
+hoặc từ thư mục ``03_dong_hoc_quy_dao_python``:
     python -m src.run_simulation
 """
 
 import os
+import sys
 
 import numpy as np
-from src.kinematics import Robot
-from src.jacobian import position_jacobian
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "dh_params.yaml")
+PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)  # cho phép chạy trực tiếp file này
+
+from src.kinematics import Robot  # noqa: E402
+from src.jacobian import position_jacobian  # noqa: E402
+
+CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "dh_params.yaml")
 
 
 def fixed_jacobian_wrapper(robot, q, h=1e-6):

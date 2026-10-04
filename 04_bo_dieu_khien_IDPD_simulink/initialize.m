@@ -88,4 +88,14 @@ p.zc2 = zc2; p.zc3 = zc3; p.zc4 = zc4;
 p.Ixx3 = Ixx3; p.Ixx4 = Ixx4; p.Iyy2 = Iyy2; p.Iyy3 = Iyy3; p.Iyy4 = Iyy4;
 p.Izz1 = Izz1; p.Izz3 = Izz3; p.Izz4 = Izz4;
 p.Ixy3 = Ixy3; p.Ixy4 = Ixy4; p.Ixz3 = Ixz3; p.Ixz4 = Ixz4; p.Iyz3 = Iyz3; p.Iyz4 = Iyz4;
-disp('==> Đã đóng gói thành công struct p!');
+disp('==> Da dong goi thanh cong struct p!');
+
+% =========================================================================
+% 7. TƯ THẾ BAN ĐẦU CỦA ROBOT = ĐIỂM ĐẦU QUỸ ĐẠO ĐẶT (HOME)
+% =========================================================================
+% Dùng làm điều kiện đầu của khối tích phân robot/qthuc, để robot xuất phát
+% đúng tại HOME thay vì tại q = 0 (tránh giật và mô-men lớn lúc t = 0).
+traj = load(fullfile(fileparts(mfilename('fullpath')), 'Vitridat.mat'));
+q_init = traj.Vitridat(2:5, 1);
+clear traj;
+fprintf('==> Tu the ban dau q_init = [%s]\n', num2str(q_init.', '%.4f  '));
