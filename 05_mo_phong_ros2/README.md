@@ -12,6 +12,8 @@ rprr_ws/src/
 ## Yêu cầu
 
 - Ubuntu 24.04 + ROS 2 Jazzy + Gazebo Harmonic (gz sim 8) — đã chạy thử trên cấu hình này
+- **Không hỗ trợ ROS 2 Humble**: Humble đi kèm Gazebo Fortress, không nạp được các plugin `gz-sim-*` dùng trong
+  `robotic_arm_gazebo.xacro` nên robot không có `/joint_states` và không điều khiển được
 - `ros_gz_sim`, `ros_gz_bridge`, `robot_state_publisher`, `xacro`, `joint_state_publisher_gui`, `rviz2`
 - Python: `numpy`
 

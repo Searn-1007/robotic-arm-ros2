@@ -13,6 +13,7 @@ một chút cho các bộ PID ổn định. Chạy xong chu trình, node tự th
 
 import numpy as np
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
@@ -175,7 +176,7 @@ def main(args=None):
     try:
         while rclpy.ok() and not node.done:
             rclpy.spin_once(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()
