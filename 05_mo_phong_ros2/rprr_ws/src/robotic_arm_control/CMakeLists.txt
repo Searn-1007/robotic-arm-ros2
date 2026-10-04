@@ -7,9 +7,6 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(control_msgs REQUIRED)
-find_package(trajectory_msgs REQUIRED)
 
 install(PROGRAMS
   src/trajectory_client.py

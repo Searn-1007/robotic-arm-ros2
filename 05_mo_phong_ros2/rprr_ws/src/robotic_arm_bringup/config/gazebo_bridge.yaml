@@ -33,9 +33,3 @@
   ros_type_name: "std_msgs/msg/Float64"
   gz_type_name: "gz.msgs.Double"
   direction: ROS_TO_GZ
-
-- ros_topic_name: "/arm_controller/commands"
-  gz_topic_name: "/arm_controller/commands"
-  ros_type_name: "std_msgs/msg/Float64MultiArray"
-  gz_type_name: "gz.msgs.DoubleV"  # Kiểu dữ liệu mảng tương ứng của Ignition Gazebo
-  direction: ROS_TO_GZ

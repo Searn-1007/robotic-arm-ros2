@@ -10,7 +10,7 @@ Thiết kế, tính toán và mô phỏng một cánh tay robot hàn 4 bậc t�
 | [`02_dong_luc_hoc_maple`](02_dong_luc_hoc_maple) | Thiết lập phương trình vi phân chuyển động của robot | Maple |
 | [`03_dong_hoc_quy_dao_python`](03_dong_hoc_quy_dao_python) | Động học thuận/ngược (DH), Jacobian, không gian làm việc, chỉ số manipulability, quỹ đạo LSPB trong không gian khớp và Cartesian, animation | Python |
 | [`04_bo_dieu_khien_IDPD_simulink`](04_bo_dieu_khien_IDPD_simulink) | Bộ điều khiển IDPD (Inverse Dynamics PD) bám quỹ đạo | MATLAB / Simulink |
-| [`05_mo_phong_ros2`](05_mo_phong_ros2) | Mô hình URDF, mô phỏng Gazebo + RViz, điều khiển bằng `ros2_control` | ROS 2 Humble |
+| [`05_mo_phong_ros2`](05_mo_phong_ros2) | Mô hình URDF, mô phỏng Gazebo + RViz, điều khiển vị trí từng khớp bằng PID của Gazebo | ROS 2 Jazzy, Gazebo Harmonic |
 
 ## Thông số robot (DH)
 

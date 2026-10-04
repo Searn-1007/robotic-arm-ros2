@@ -91,10 +91,4 @@
     <gravity>false</gravity>
   </gazebo>
 
-  <gazebo>
-    <plugin name="ign_ros2_control::IgnitionROS2ControlPlugin" filename="libign_ros2_control-system.so">
-      <parameter>$(find robotic_arm_bringup)/config/ros2_controllers.yaml</parameter>
-    </plugin>
-  </gazebo>
-
 </robot>

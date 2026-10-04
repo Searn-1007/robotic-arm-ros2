@@ -2,7 +2,6 @@
 <robot name="robotic_arm" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:include filename="$(find robotic_arm_description)/urdf/macros.xacro"/>
-  <xacro:include filename="$(find robotic_arm_description)/urdf/robotic_arm.ros2_control.xacro"/>
 
   <!-- ===== common properties ===== -->
   <xacro:property name="mesh_path" value="package://robotic_arm_description/meshes"/>
