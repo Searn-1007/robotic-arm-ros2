@@ -71,7 +71,9 @@ Tổng **29.60 s, 2961 điểm**. Biến khớp: HOME (−0.7205, 0.2101, 1.4013
 
 ## Việc còn dở / cần làm trên Ubuntu
 
-- [ ] **Chạy thử Gazebo** với IK mới (chưa từng chạy thật): `colcon build` trong `05_mo_phong_ros2/rprr_ws`,
+- [x] **Chạy thử Gazebo** trên Ubuntu 24.04 + ROS 2 Jazzy + Gazebo Harmonic (2026-10-05): chạy được; đã sửa mesh
+      không hiện trong Gazebo, `/joint_states` bị ros2_control giả lập ghi đè bằng số 0, PID q3 quá mềm
+      (sai số đoạn hàn TB 17 mm → 2 mm). Lệnh gốc: `colcon build` trong `05_mo_phong_ros2/rprr_ws`,
       `ros2 launch robotic_arm_bringup gazebo.launch.py`, rồi `ros2 run robotic_arm_control trajectory_client.py`.
       Kỳ vọng: giống mô phỏng cũ, mỏ hàn hàn đoạn thẳng đứng 20 cm.
 - [ ] Chạy lại Simulink nếu có MATLAB (StopTime trong .slx = 35 s, đủ cho 29.60 s).
@@ -80,7 +82,11 @@ Tổng **29.60 s, 2961 điểm**. Biến khớp: HOME (−0.7205, 0.2101, 1.4013
 
 ## Vấn đề đã phát hiện nhưng CHƯA sửa (chờ người dùng quyết)
 
-- `robotic_arm_gazebo.xacro` tắt trọng lực cho link `gripper` không tồn tại (link cuối tên `end_effector`).
+- Robot xuất phát ở q = 0 nhưng quỹ đạo bắt đầu ngay tại HOME (không có đoạn đưa về HOME) → ~3 s đầu bám
+  không kịp, chặng HOME→B lệch tới ~600 mm.
+- Gazebo Harmonic có vẻ bỏ qua `<gravity>false</gravity>` theo từng link (đã sửa tên `gripper` → `end_effector`
+  nhưng gần như không đổi gì); sai số trọng lực hiện được PID bù.
+- README ghi ROS 2 Humble / Ubuntu 22.04, nhưng đã chạy được trên Jazzy / 24.04.
 - `package.xml`: maintainer `thinkpad@todo.todo`, license `TODO`.
 - `test.py` thực chất là script xuất waypoint; có thể đổi tên (vd. `export_waypoints.py`).
 - Workspace (`main.py`) tính cho đầu mỏ hàn có offset, còn quỹ đạo tính cho gốc O4 — hai "điểm cuối" khác nhau.

@@ -1,12 +1,13 @@
 """
 Mô phỏng robot trong Gazebo (gz sim) kèm RViz.
 
-Khởi chạy Gazebo, spawn robot từ URDF, bridge ROS <-> Gazebo, ros2_control
-và các controller (joint_state_broadcaster, arm_controller).
+Khởi chạy Gazebo, spawn robot từ URDF, bridge ROS <-> Gazebo và RViz.
+Các khớp được điều khiển bằng plugin JointPositionController của Gazebo qua
+topic ``/q1_cmd_pos`` ... ``/q4_cmd_pos``; ``/joint_states`` lấy từ Gazebo.
 """
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import AppendEnvironmentVariable, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -29,12 +30,6 @@ def generate_launch_description():
         'gazebo_bridge.yaml'
     )
 
-    controller_config_path = os.path.join(
-        get_package_share_directory('robotic_arm_bringup'),
-        'config',
-        'ros2_controllers.yaml'
-    )
-
     rviz_config_path = os.path.join(
         get_package_share_directory('robotic_arm_description'),
         'rviz',
@@ -50,6 +45,12 @@ def generate_launch_description():
         get_package_share_directory('ros_gz_sim'),
         'launch',
         'gz_sim.launch.py'
+    )
+
+    # Cho Gazebo tìm được mesh dạng model://robotic_arm_description/meshes/...
+    gz_resource_path = AppendEnvironmentVariable(
+        'GZ_SIM_RESOURCE_PATH',
+        os.path.dirname(get_package_share_directory('robotic_arm_description'))
     )
 
     gz_sim = IncludeLaunchDescription(
@@ -94,38 +95,11 @@ def generate_launch_description():
         output='screen'
     )
 
-    ros2_control_node = Node(
-        package='controller_manager',
-        executable='ros2_control_node',
-        parameters=[
-            {'robot_description': robot_description},
-            {'use_sim_time': True},
-            controller_config_path,
-        ],
-        output='screen',
-    )
-
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_state_broadcaster"],
-        output="screen",
-    )
-
-    arm_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["arm_controller"],
-        output="screen",
-    )
-
     return LaunchDescription([
+        gz_resource_path,
         gz_sim,
         robot_state_publisher_node,
         spawn_robot_node,
         bridge_node,
         rviz_node,
-        ros2_control_node,
-        TimerAction(period=3.0, actions=[joint_state_broadcaster_spawner]),
-        TimerAction(period=4.0, actions=[arm_controller_spawner]),
     ])
