@@ -1,0 +1,96 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="mesh_link_box"
+               params="name mesh xyz rpy material scale
+                       mass com_xyz
+                       ixx ixy ixz iyy iyz izz
+                       collision_xyz:='0 0 0'
+                       collision_rpy:='0 0 0'
+                       collision_size:='0.01 0.01 0.01'">
+    <link name="${name}">
+      <visual>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="${mesh}" scale="${scale}"/>
+        </geometry>
+        <material name="${material}"/>
+      </visual>
+
+      <collision>
+        <origin xyz="${collision_xyz}" rpy="${collision_rpy}"/>
+        <geometry>
+          <box size="${collision_size}"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="${com_xyz}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+          ixx="${ixx}" ixy="${ixy}" ixz="${ixz}"
+          iyy="${iyy}" iyz="${iyz}" izz="${izz}"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="mesh_link_cylinder"
+               params="name mesh xyz rpy material scale
+                       mass com_xyz
+                       ixx ixy ixz iyy iyz izz
+                       collision_xyz:='0 0 0'
+                       collision_rpy:='0 0 0'
+                       collision_radius:='0.01'
+                       collision_length:='0.01'">
+    <link name="${name}">
+      <visual>
+        <origin xyz="${xyz}" rpy="${rpy}"/>
+        <geometry>
+          <mesh filename="${mesh}" scale="${scale}"/>
+        </geometry>
+        <material name="${material}"/>
+      </visual>
+
+      <collision>
+        <origin xyz="${collision_xyz}" rpy="${collision_rpy}"/>
+        <geometry>
+          <cylinder radius="${collision_radius}" length="${collision_length}"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="${com_xyz}" rpy="0 0 0"/>
+        <mass value="${mass}"/>
+        <inertia
+          ixx="${ixx}" ixy="${ixy}" ixz="${ixz}"
+          iyy="${iyy}" iyz="${iyz}" izz="${izz}"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <xacro:macro name="revolute_joint"
+               params="name parent child xyz rpy axis lower upper effort velocity damping:=0.0 friction:=0.0">
+    <joint name="${name}" type="revolute">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+      <axis xyz="${axis}"/>
+      <limit lower="${lower}" upper="${upper}" effort="${effort}" velocity="${velocity}"/>
+      <dynamics damping="${damping}" friction="${friction}"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="prismatic_joint"
+               params="name parent child xyz rpy axis lower upper effort velocity damping:=0.0 friction:=0.0">
+    <joint name="${name}" type="prismatic">
+      <parent link="${parent}"/>
+      <child link="${child}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+      <axis xyz="${axis}"/>
+      <limit lower="${lower}" upper="${upper}" effort="${effort}" velocity="${velocity}"/>
+      <dynamics damping="${damping}" friction="${friction}"/>
+    </joint>
+  </xacro:macro>
+
+</robot>
+
