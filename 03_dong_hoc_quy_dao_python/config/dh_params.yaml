@@ -1,0 +1,50 @@
+# ============================================================
+#  CAU HINH ROBOT HAN 4DOF  (R - P - R - R)
+# ------------------------------------------------------------
+#  Quy uoc DH: (theta, d, a, alpha)
+#  - Goc (theta, alpha, limit cua khop quay) ghi bang DO -> code tu doi sang rad
+#  - Chieu dai (d, a) va limit cua khop tinh tien ghi bang MET
+# ============================================================
+
+# Khau 0 - base co dinh (chi co d)
+base_offset_d: 0.084        # m
+
+# 4 khop. type: 'revolute' (bien la theta) | 'prismatic' (bien la d)
+joints:
+  - name: q1                # khop quay base
+    type: revolute
+    d: 0.2175               # m
+    a: 0.0                  # m
+    alpha: 0                # do
+    theta_offset: 0         # do
+    limit: [0, 360]         # do
+
+  - name: q2                # khop tinh tien dung
+    type: prismatic
+    theta: 0                # do (co dinh)
+    a: 0.25                 # m
+    alpha: 90               # do
+    d_offset: 0.0           # m
+    limit: [0.0, 0.225]     # m
+
+  - name: q3                # khop quay
+    type: revolute
+    d: 0.105                # m
+    a: 0.0                  # m
+    alpha: 90               # do
+    theta_offset: 90        # do  ->  theta = q3 + 90
+    limit: [-90, 135]       # do  (-pi/2 ... 3pi/4)
+
+  - name: q4                # khop quay torch
+    type: revolute
+    d: 0.262                # m
+    a: 0.0                  # m
+    alpha: 0                # do
+    theta_offset: 0         # do
+    limit: [0, 360]         # do
+
+# Toa do dau mo han trong he O4 (mm)
+torch_offset_mm: [-68.0, 0.0, 126.0]
+
+# So diem lay mau Monte Carlo
+n_samples: 400000

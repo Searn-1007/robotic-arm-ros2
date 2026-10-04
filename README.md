@@ -1,46 +1,46 @@
-# Mô phỏng cánh tay robot RPRR trên ROS 2 (Gazebo + RViz)
+# Robot hàn 4 bậc tự do RPRR — Bài tập lớn Robotics
 
-Bài tập lớn môn Robotics: mô phỏng cánh tay robot 4 khớp (RPRR) gắn đầu hàn, gồm mô hình URDF/Xacro từ SolidWorks, điều khiển bằng `ros2_control` và sinh quỹ đạo LSPB trong không gian làm việc với động học ngược.
+Thiết kế, tính toán và mô phỏng một cánh tay robot hàn 4 bậc tự do kiểu **R–P–R–R** (quay – tịnh tiến – quay – quay), làm trọn vẹn từ thiết kế cơ khí, động học, động lực học, thiết kế quỹ đạo, bộ điều khiển cho tới mô phỏng trên ROS 2.
 
-## Cấu trúc
+## Nội dung
 
-```
-src/
-├── robotic_arm_description/   # URDF/Xacro, mesh STL, cấu hình RViz
-├── robotic_arm_bringup/       # Launch file, cấu hình ros2_control và Gazebo bridge
-└── robotic_arm_control/       # Node sinh quỹ đạo (trajectory_client.py)
-```
+| Thư mục | Nội dung | Công cụ |
+|---|---|---|
+| [`01_thiet_ke_solidworks`](01_thiet_ke_solidworks) | Mô hình 3D các khâu, cụm lắp ráp, đầu hàn, bản vẽ kỹ thuật; G-code in 3D | SolidWorks, Cura |
+| [`02_dong_luc_hoc_maple`](02_dong_luc_hoc_maple) | Thiết lập phương trình vi phân chuyển động của robot | Maple |
+| [`03_dong_hoc_quy_dao_python`](03_dong_hoc_quy_dao_python) | Động học thuận/ngược (DH), Jacobian, không gian làm việc, chỉ số manipulability, quỹ đạo LSPB trong không gian khớp và Cartesian, animation | Python |
+| [`04_bo_dieu_khien_IDPD_simulink`](04_bo_dieu_khien_IDPD_simulink) | Bộ điều khiển IDPD (Inverse Dynamics PD) bám quỹ đạo | MATLAB / Simulink |
+| [`05_mo_phong_ros2`](05_mo_phong_ros2) | Mô hình URDF, mô phỏng Gazebo + RViz, điều khiển bằng `ros2_control` | ROS 2 Humble |
+| [`bao_cao`](bao_cao) | Báo cáo đầy đủ | PDF |
 
-## Yêu cầu
+## Thông số robot (DH)
 
-- ROS 2 (Jazzy / Humble) + Gazebo (gz sim)
-- `ros_gz_sim`, `ros_gz_bridge`, `ros2_control`, `ros2_controllers`, `xacro`, `joint_state_publisher_gui`, `rviz2`
-- Python: `numpy`
+| Khớp | Loại | d (m) | a (m) | α (°) | Giới hạn |
+|---|---|---|---|---|---|
+| q1 | Quay | 0.2175 | 0 | 0 | 0° → 360° |
+| q2 | Tịnh tiến | q2 | 0.25 | 90 | 0 → 0.225 m |
+| q3 | Quay (θ = q3 + 90°) | 0.105 | 0 | 90 | −90° → 135° |
+| q4 | Quay (mỏ hàn) | 0.262 | 0 | 0 | 0° → 360° |
 
-## Build
+Đế cố định d0 = 0.084 m. Đầu mỏ hàn lệch (−68, 0, 126) mm so với hệ O4.
 
-```bash
-cd robotic-arm-ros2
-colcon build
-source install/setup.bash
-```
+## Hướng dẫn chạy nhanh
 
-## Chạy
-
-Xem mô hình trên RViz (kéo thanh trượt để chỉnh từng khớp):
-
-```bash
-ros2 launch robotic_arm_bringup display.launch.py
-```
-
-Mô phỏng trên Gazebo + RViz:
+**Động học & quỹ đạo (Python)**
 
 ```bash
-ros2 launch robotic_arm_bringup gazebo.launch.py
+cd 03_dong_hoc_quy_dao_python
+pip install -r requirements.txt
+python main.py            # không gian làm việc + manipulability -> data/ket_qua.png
+python JointSpace.py      # quỹ đạo trong không gian khớp
+python CartesianSpace.py  # quỹ đạo trong không gian Cartesian
+python animation.py       # animation 3D robot chạy theo quỹ đạo
 ```
 
-Chạy quỹ đạo mẫu (Home → B → dừng → A → dừng → về Home) ở terminal khác:
+**Bộ điều khiển IDPD (MATLAB)**: chạy `initialize.m` trước để nạp tham số, sau đó mở `controller_simulation.slx` và bấm Run. Xem [README](04_bo_dieu_khien_IDPD_simulink/README.md).
 
-```bash
-ros2 run robotic_arm_control trajectory_client.py
-```
+**Mô phỏng ROS 2**: xem [05_mo_phong_ros2/README.md](05_mo_phong_ros2/README.md).
+
+## Kết quả
+
+![Không gian làm việc và manipulability](03_dong_hoc_quy_dao_python/data/ket_qua.png)

@@ -10,3 +10,12 @@ log/
 # Python
 __pycache__/
 *.pyc
+
+# MATLAB / Simulink cache
+slprj/
+*.slxc
+*.asv
+
+# Python venv / IDE
+.venv/
+.idea/
