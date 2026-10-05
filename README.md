@@ -1,31 +1,31 @@
-# Robot hàn 4 bậc tự do RPRR — Bài tập lớn Robotics
+# 4-DOF RPRR Welding Robot — Robotics Course Project
 
-Thiết kế, tính toán và mô phỏng một cánh tay robot hàn 4 bậc tự do kiểu **R–P–R–R** (quay – tịnh tiến – quay – quay), làm trọn vẹn từ thiết kế cơ khí, động học, động lực học, thiết kế quỹ đạo, bộ điều khiển cho tới mô phỏng trên ROS 2.
+Design, analysis and simulation of a 4-degree-of-freedom welding robot arm of type **R–P–R–R** (revolute – prismatic – revolute – revolute), covering the full pipeline from mechanical design, kinematics, dynamics, trajectory planning and controller design to simulation in ROS 2.
 
-## Nội dung
+## Contents
 
-| Thư mục | Nội dung | Công cụ |
+| Folder | Content | Tools |
 |---|---|---|
-| [`01_thiet_ke_solidworks`](01_thiet_ke_solidworks) | Mô hình 3D các khâu, cụm lắp ráp, đầu hàn, bản vẽ kỹ thuật | SolidWorks |
-| [`02_dong_luc_hoc_maple`](02_dong_luc_hoc_maple) | Thiết lập phương trình vi phân chuyển động của robot | Maple |
-| [`03_dong_hoc_quy_dao_python`](03_dong_hoc_quy_dao_python) | Động học thuận/ngược (DH), Jacobian, không gian làm việc, chỉ số manipulability, quỹ đạo LSPB trong không gian khớp và Cartesian, animation | Python |
-| [`04_bo_dieu_khien_IDPD_simulink`](04_bo_dieu_khien_IDPD_simulink) | Bộ điều khiển IDPD (Inverse Dynamics PD) bám quỹ đạo | MATLAB / Simulink |
-| [`05_mo_phong_ros2`](05_mo_phong_ros2) | Mô hình URDF, mô phỏng Gazebo + RViz, điều khiển vị trí từng khớp bằng PID của Gazebo | ROS 2 Jazzy, Gazebo Harmonic |
+| [`01_thiet_ke_solidworks`](01_thiet_ke_solidworks) | 3D models of the links, assemblies, welding head, technical drawings | SolidWorks |
+| [`02_dong_luc_hoc_maple`](02_dong_luc_hoc_maple) | Derivation of the robot's differential equations of motion | Maple |
+| [`03_dong_hoc_quy_dao_python`](03_dong_hoc_quy_dao_python) | Forward/inverse kinematics (DH), Jacobian, workspace, manipulability index, LSPB trajectories in joint space and Cartesian space, animation | Python |
+| [`04_bo_dieu_khien_IDPD_simulink`](04_bo_dieu_khien_IDPD_simulink) | IDPD (Inverse Dynamics PD) trajectory-tracking controller | MATLAB / Simulink |
+| [`05_mo_phong_ros2`](05_mo_phong_ros2) | URDF model, Gazebo + RViz simulation, per-joint position control using Gazebo's PID | ROS 2 Jazzy, Gazebo Harmonic |
 
-## Thông số robot (DH)
+## Robot parameters (DH)
 
-| Khớp | Loại | d (m) | a (m) | α (°) | Giới hạn |
+| Joint | Type | d (m) | a (m) | α (°) | Limits |
 |---|---|---|---|---|---|
-| q1 | Quay | 0.2175 | 0 | 0 | 0° → 360° |
-| q2 | Tịnh tiến | q2 | 0.25 | 90 | 0 → 0.225 m |
-| q3 | Quay (θ = q3 + 90°) | 0.105 | 0 | 90 | −90° → 135° |
-| q4 | Quay (mỏ hàn) | 0.262 | 0 | 0 | 0° → 360° |
+| q1 | Revolute | 0.2175 | 0 | 0 | 0° → 360° |
+| q2 | Prismatic | q2 | 0.25 | 90 | 0 → 0.225 m |
+| q3 | Revolute (θ = q3 + 90°) | 0.105 | 0 | 90 | −90° → 135° |
+| q4 | Revolute (welding torch) | 0.262 | 0 | 0 | 0° → 360° |
 
-Đế cố định d0 = 0.084 m. Đầu mỏ hàn lệch (−68, 0, 126) mm so với hệ O4.
+Fixed base d0 = 0.084 m. The welding torch tip is offset by (−68, 0, 126) mm from frame O4.
 
-Quy ước điểm cuối: không gian làm việc (`main.py`) tính cho **đầu mỏ hàn** (có offset trên); còn quỹ đạo hàn, động học ngược, Simulink và mô phỏng ROS 2 đều tính cho **gốc hệ O4** (q4 = 0).
+End-effector convention: the workspace (`main.py`) is computed for the **welding torch tip** (with the offset above); the welding trajectory, inverse kinematics, Simulink and the ROS 2 simulation are all computed for the **origin of frame O4** (q4 = 0).
 
-**Động học thuận** (gốc hệ O4):
+**Forward kinematics** (origin of frame O4):
 
 ```
 x = 0.25·cos q1 + 0.105·sin q1 + 0.262·cos q1·cos q3
@@ -33,7 +33,7 @@ y = 0.25·sin q1 − 0.105·cos q1 + 0.262·sin q1·cos q3
 z = q2 + 0.262·sin q3 + 0.3015
 ```
 
-**Động học ngược**:
+**Inverse kinematics**:
 
 ```
 q1 = atan2(0.105, √(x² + y² − 0.105²)) + atan2(y, x)
@@ -41,50 +41,50 @@ q3 = atan2(√(1 − D²), D),   D = (x·cos q1 + y·sin q1 − 0.25) / 0.262
 q2 = z − 0.262·sin q3 − 0.3015
 ```
 
-Mô hình này thống nhất trong toàn bộ repo: bảng DH (`config/dh_params.yaml`), URDF trong ROS 2, các script quỹ đạo Python và node điều khiển Gazebo.
+This model is consistent across the whole repo: the DH table (`config/dh_params.yaml`), the URDF in ROS 2, the Python trajectory scripts and the Gazebo control node.
 
-## Chu trình hàn
+## Welding cycle
 
-Hàn hồ quang không tiếp xúc trên đoạn thẳng đứng BA dài 0.2 m. Quỹ đạo Cartesian dùng biên dạng vận tốc hình thang (LSPB), chu kỳ lấy mẫu 0.01 s.
+Non-contact arc welding along a 0.2 m vertical segment BA. The Cartesian trajectory uses a trapezoidal velocity profile (LSPB) with a sampling period of 0.01 s.
 
-| Điểm | Tọa độ (m) | Biến khớp (q1 rad, q2 m, q3 rad) |
+| Point | Coordinates (m) | Joint variables (q1 rad, q2 m, q3 rad) |
 |---|---|---|
 | HOME | (0.1518, −0.2730, 0.7698) | (−0.7205, 0.2101, 1.4013) |
-| B — bắt đầu hàn | (0.1589, −0.1543, 0.7782) | (−0.2768, 0.2205, 1.7822) |
-| A — kết thúc hàn | (0.1589, −0.1543, 0.5782) | (−0.2768, 0.0205, 1.7822) |
+| B — weld start | (0.1589, −0.1543, 0.7782) | (−0.2768, 0.2205, 1.7822) |
+| A — weld end | (0.1589, −0.1543, 0.5782) | (−0.2768, 0.0205, 1.7822) |
 
-| Giai đoạn | Vận tốc max | Gia tốc | Thời điểm kết thúc |
+| Phase | Max velocity | Acceleration | End time |
 |---|---|---|---|
 | HOME → B | 0.05 m/s | 0.10 m/s² | 2.88 s |
-| Dừng tại B (mồi hồ quang) | — | — | 3.38 s |
-| B → A (hàn) | 0.01 m/s | 0.05 m/s² | 23.58 s |
-| Dừng tại A (điền đầy miệng hàn) | — | — | 24.58 s |
+| Dwell at B (arc ignition) | — | — | 3.38 s |
+| B → A (welding) | 0.01 m/s | 0.05 m/s² | 23.58 s |
+| Dwell at A (crater filling) | — | — | 24.58 s |
 | A → HOME | 0.05 m/s | 0.10 m/s² | 29.60 s |
 
-Tổng cộng 2961 điểm tham chiếu (`Cartesian_Waypoints.txt`). Quỹ đạo khớp tương ứng được xuất sang Simulink (`Vitridat.mat`, `Vantocdat.mat`, `Giatocdat.mat`).
+2961 reference points in total (`Cartesian_Waypoints.txt`). The corresponding joint trajectories are exported to Simulink (`Vitridat.mat`, `Vantocdat.mat`, `Giatocdat.mat`).
 
-## Hướng dẫn chạy nhanh
+## Quick start
 
-**Động học & quỹ đạo (Python)**
+**Kinematics & trajectories (Python)**
 
 ```bash
 cd 03_dong_hoc_quy_dao_python
 pip install -r requirements.txt
-python main.py            # không gian làm việc + manipulability -> data/ket_qua.png
-python JointSpace.py      # quỹ đạo khớp + xuất Vitridat/Vantocdat/Giatocdat.mat cho Simulink
-python CartesianSpace.py  # quỹ đạo Cartesian + xuất Cartesian_Waypoints.txt
-python animation.py       # animation 3D robot chạy theo quỹ đạo
-python -m src.run_simulation  # kiểm tra nhanh Jacobian tại một cấu hình mẫu
+python main.py            # workspace + manipulability -> data/ket_qua.png
+python JointSpace.py      # joint trajectories + export Vitridat/Vantocdat/Giatocdat.mat for Simulink
+python CartesianSpace.py  # Cartesian trajectory + export Cartesian_Waypoints.txt
+python animation.py       # 3D animation of the robot following the trajectory
+python -m src.run_simulation  # quick Jacobian check at a sample configuration
 ```
 
-**Bộ điều khiển IDPD (MATLAB)**: chạy `initialize.m` trước để nạp tham số, sau đó mở `controller_simulation.slx` và bấm Run. Xem [README](04_bo_dieu_khien_IDPD_simulink/README.md).
+**IDPD controller (MATLAB)**: run `initialize.m` first to load the parameters, then open `controller_simulation.slx` and click Run. See the [README](04_bo_dieu_khien_IDPD_simulink/README.md).
 
-**Mô phỏng ROS 2**: xem [05_mo_phong_ros2/README.md](05_mo_phong_ros2/README.md).
+**ROS 2 simulation**: see [05_mo_phong_ros2/README.md](05_mo_phong_ros2/README.md).
 
-## Giấy phép
+## License
 
 [MIT](LICENSE)
 
-## Kết quả
+## Results
 
-![Không gian làm việc và manipulability](03_dong_hoc_quy_dao_python/data/ket_qua.png)
+![Workspace and manipulability](03_dong_hoc_quy_dao_python/data/ket_qua.png)
